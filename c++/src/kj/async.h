@@ -668,6 +668,8 @@ public:
   inline ~WaitScope() { loop.leaveScope(); }
   KJ_DISALLOW_COPY(WaitScope);
 
+  void poll();
+
 private:
   EventLoop& loop;
   friend class EventLoop;

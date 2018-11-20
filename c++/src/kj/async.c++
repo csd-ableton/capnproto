@@ -312,6 +312,26 @@ void EventLoop::leaveScope() {
   threadLocalEventLoop = nullptr;
 }
 
+void WaitScope::poll() {
+  KJ_REQUIRE(&loop == threadLocalEventLoop, "WaitScope not valid for this thread.");
+  KJ_REQUIRE(!loop.running, "poll() is not allowed from within event callbacks.");
+
+  loop.running = true;
+  KJ_DEFER(loop.running = false);
+
+  for (;;) {
+    if (!loop.turn()) {
+      // No events in the queue.  Poll for I/O.
+      loop.port.poll();
+
+      if (!loop.isRunnable()) {
+        // Still no events in the queue. We're done.
+        return;
+      }
+    }
+  }
+}
+
 namespace _ {  // private
 
 void waitImpl(Own<_::PromiseNode>&& node, _::ExceptionOrValue& result, WaitScope& waitScope) {
